@@ -1,6 +1,6 @@
 ---
 title: "Qcheck dashboard"
-author: [Sandra Segovia]
+Author: Sandra Segovia
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
@@ -288,7 +288,7 @@ renderPlotly({
 
 renderDataTable({
     datatable(
-        data = test.data[,c("variable","description","warning","temporalvars","iff","frequency")], 
+      data = test.data[,c("variable","description","warning","temporalvars","iff","frequency")], 
       class = 'cell-border stripe',
       rownames = FALSE,
       filter = 'top'
@@ -397,7 +397,11 @@ renderPlotly({
           aes(year,value,group=period)) + 
           geom_point(aes(colour = period), size = 1.5) + 
           geom_line(aes(colour = period), size = 1) + 
-          labs(title=paste("<b>Mean of</b>",input$vr,"<b>for</b>", input$ct), x = "year", y = "value") + theme(plot.title = element_text(hjust=0.5))
+          theme(plot.title = element_text(hjust=0.5)) +
+          labs(
+              title=paste("<b>Mean of</b>",input$vr,"<b>for</b>", input$ct), 
+              x = "year", 
+              y = "value") 
     
     ggplotly(p)
 })
@@ -426,10 +430,14 @@ renderPlotly({
   p<-ggplot(
           mis.p(), 
           aes(year,percent,group=period)) + 
-          geom_point(aes(colour = period), size = 1.5) + 
-          geom_line(aes(colour = period), size = 1) + labs(title=paste("<b>%Missings for</b>",input$vr,"<b>for</b>", input$ct), x = "year", y = "percent") + 
-          theme(plot.title = element_text(hjust=0.5))
-    
+          geom_point(aes(colour = period), size = 1.5) +
+          theme(plot.title = element_text(hjust=0.5)) +
+          geom_line(aes(colour = period), size = 1) + 
+          labs(
+              title=paste("<b>%Missings for</b>",input$vr,"<b>for</b>", input$ct),
+              x = "year", 
+              y = "percent")  
+
     ggplotly(p) 
 })
 ```
@@ -457,8 +465,12 @@ renderPlotly({
   p <-ggplot(sdev.p(),aes(year,value,group=period)) + 
       geom_point(aes(colour = period), size = 1.5) + 
       geom_line(aes(colour = period), size = 1) + 
-      labs(title=paste("<b>Std.Deviation of</b>",input$vr,"<b>for</b>", input$ct), x = "year", y = "value") + 
-      theme(plot.title = element_text(hjust=0.5))
+      theme(plot.title = element_text(hjust=0.5)) +
+      labs(
+          title=paste("<b>Std.Deviation of</b>",input$vr,"<b>for</b>",input$ct), 
+          x = "year",
+          y = "value") 
+      
     
     ggplotly(p)
 })
@@ -484,9 +496,11 @@ renderPlotly({
     p <- ggplot(zero.p(), aes(year,percent,group=period)) + 
          geom_point(aes(colour = period), size = 1.5) + 
          geom_line(aes(colour = period), size = 1) + 
-         labs(title=paste("<b>%Zeroes for</b>",input$vr,"<b>for</b>", input$ct), x = "year", y = "value") + 
-         theme(plot.title = element_text(hjust=0.5))
-    
+         theme(plot.title = element_text(hjust=0.5)) +
+         labs(title=paste("<b>%Zeroes for</b>",input$vr,"<b>for</b>", input$ct),
+              x = "year",
+              y = "value") 
+         
     ggplotly(p) 
 })
 ```
@@ -602,8 +616,13 @@ renderPlotly ({
   p<- ggplot(me(), aes(year,value,group=variable)) + 
         geom_point(aes(colour = variable), size = 1.5) + 
         geom_line(aes(colour = variable), size = 1) + 
-        labs(title=paste("<b>Mean of</b>","vars","<b>for</b>", input$coun, "<b>in period</b>",input$pd ), x = "year", y = "value") + 
-        theme(plot.title = element_text(hjust=0.5))
+        theme(plot.title = element_text(hjust=0.5)) +
+        labs(
+            title=paste("<b>Mean of</b>","vars","<b>for</b>", 
+                  input$coun, "<b>in period</b>",input$pd ),
+            x = "year",
+            y = "value") 
+        
     
     ggplotly(p)
 })
@@ -632,8 +651,12 @@ renderPlotly ({
   p<- ggplot(mis(), aes(year,percent,group=variable)) + 
         geom_point(aes(colour = variable), size = 1.5) + 
         geom_line(aes(colour = variable), size = 1) + 
-        labs(title=paste("<b>%Missings for</b>","vars","<b>for</b>", input$coun, "<b>in period</b>",input$pd ), x = "year", y = "percent") + 
-        theme(plot.title = element_text(hjust=0.5))
+        theme(plot.title = element_text(hjust=0.5)) +
+        labs(
+            title=paste("<b>%Missings for</b>","vars","<b>for</b>",
+                         input$coun, "<b>in period</b>",input$pd ), 
+            x = "year", 
+            y = "percent") 
     
     ggplotly(p) 
 })
@@ -661,9 +684,13 @@ renderPlotly ({
     p<- ggplot(sdev(), aes(year,value,group=variable)) +
         geom_point(aes(colour = variable), size = 1.5) + 
         geom_line(aes(colour = variable), size = 1) + 
-        labs(title=paste("<b>Std.Deviation of</b>","vars","<b>for</b>", input$coun, "<b>in period</b>",input$pd), x = "year", y = "value") + 
-        theme(plot.title = element_text(hjust=0.5))
-    
+        theme(plot.title = element_text(hjust=0.5)) +
+        labs(
+          title=paste("<b>Std.Deviation of</b>","vars","<b>for</b>", 
+                input$coun, "<b>in period</b>",input$pd),
+          x = "year", 
+          y = "value") 
+
     ggplotly(p)
 })
 ```
@@ -689,9 +716,12 @@ renderPlotly ({
    p<- ggplot(zero(), aes(year,percent,group=variable)) + 
         geom_point(aes(colour = variable), size = 1.5) + 
         geom_line(aes(colour = variable), size = 1) + 
-        labs(title=paste("<b>%Zeroes for</b>","vars","<b>for</b>", input$coun, "<b>in period</b>",input$pd ), x = "year", y = "percent") +
-        theme(plot.title = element_text(hjust=0.5))
-
+        theme(plot.title = element_text(hjust=0.5)) +
+        labs(
+            title=paste("<b>%Zeroes for</b>","vars","<b>for</b>",
+                        input$coun, "<b>in period</b>",input$pd ), 
+            x = "year", 
+            y = "percent") 
     ggplotly(p) 
 
 })
@@ -776,10 +806,13 @@ renderPlotly ({
          ineq(), 
          aes(year,value,group=period)) + 
          geom_point(aes(colour = period), size = 1.5) + 
-         geom_line(aes(colour = period), size = 1) + facet_grid(case~.) +    
-         labs(title =paste("<b>Inequality Indicators for</b>",input$countr), x = "year", y = "index")  + 
-      theme(plot.title = element_text(hjust=0.5))  
-    
+         geom_line(aes(colour = period), size = 1) + facet_grid(case~.) +
+         theme(plot.title = element_text(hjust=0.5)) +
+         labs(
+            title =paste("<b>Inequality Indicators for</b>",input$countr), 
+            x = "year", 
+            y = "index")
+  
     ggplotly(p)  
 })
 
@@ -806,7 +839,11 @@ renderPlotly ({
           aes(year,value,group=period)) + 
           geom_point(aes(colour = period), size = 1.5) + 
           geom_line(aes(colour = period), size = 1) + facet_grid(case~.) + 
-          labs(title =paste("<b>Poverty Rates for</b>",input$countr), x = "year", y = "%") + theme(plot.title = element_text(hjust=0.5))  
+          theme(plot.title = element_text(hjust=0.5)) +
+          labs(
+              title =paste("<b>Poverty Rates for</b>",input$countr), 
+              x = "year",
+              y = "%")  
     
     ggplotly(p)  
 })
@@ -916,8 +953,14 @@ renderPlotly ({
           w(), 
           aes(year,freq,fill=valuelab)) +
           geom_bar(stat = "identity") + 
-          labs(title=paste("<b>(Weighted) Participation Analysis of</b>",input$varia,"<b>for</b>", input$count, "<b>in period</b>",input$peri ), x = "year", y = "%", fill = "Categories") + 
-          theme(plot.title = element_text(hjust = 0.5))
+          theme(plot.title = element_text(hjust = 0.5)) +
+          labs(title=paste("<b>(Weighted) Participation Analysis of</b>",
+                           input$varia,"<b>for</b>", input$count, 
+                           "<b>in period</b>",input$peri ), 
+               x = "year", 
+               y = "%", 
+               fill = "Categories") 
+          
     ggplotly(p)
 })
 
@@ -945,8 +988,15 @@ renderPlotly ({
           unw(), 
           aes(year,freq,fill=valuelab)) + 
           geom_bar(stat = "identity",na.rm=FALSE) + 
-          labs(title=paste("<b>(Unweighted) Participation Analysis of</b>",input$varia,"<b>for</b>", input$count, "<b>in period</b>",input$peri), x = "year", y = "%", fill = "Categories") + 
-          theme(plot.title = element_text(hjust = 0.5))
+          theme(plot.title = element_text(hjust = 0.5)) +
+          labs(
+              title=paste("<b>(Unweighted) Participation Analysis of</b>",
+                          input$varia,"<b>for</b>", 
+                          input$count, "<b>in period</b>",input$peri), 
+              x = "year", 
+              y = "%", 
+              fill = "Categories") 
+          
     ggplotly(p)
 })
 ```
