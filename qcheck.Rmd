@@ -1,5 +1,6 @@
 ---
 title: "Qcheck dashboard"
+author: [Sandra Segovia]
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
