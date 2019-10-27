@@ -168,6 +168,35 @@ renderTable({
 Row {.tabset .tabset-fade}
 -------------------------------------
   
+### Table
+```{r Table.Static}
+y <- mutate(static.data, percent=round(100*percentage,2))
+y <-distinct(y[,c("country","period","Modulo","variable","description","iff","year","percent")])
+y <-spread(y,year,percent)
+
+yy <- reactive  ({
+          y %>% 
+          filter(
+              country==input$country,
+              Modulo %in% input$mod,
+              variable %in% input$variab,
+              period == input$period)
+      })
+
+renderFormattable ({
+    formattable(
+        yy(),
+        list(
+            area(col = `2000`:`2018`) ~ color_tile("#DeF7E9", "#71CA97")
+        )
+    )
+})
+
+#               `country` = formatter("span", style = ~ style(color = "grey",font.weight = "bold", font.size = 10)),
+#                `variable` = formatter("span", style = ~ style(color = "navy",font.style = "italic", font.size = 2)), 
+ 
+```
+
 ### Heatmap
 ```{r Heatmap}
 
@@ -196,35 +225,6 @@ q<-ggplot(ss(),aes(x=year,y=description)) +
     geom_text(aes(label=paste(round(percent, 2)))) 
 ggplotly(q)
 })
-```
-
-### Table
-```{r Table.Static}
-y <- mutate(static.data, percent=round(100*percentage,2))
-y <-distinct(y[,c("country","period","Modulo","variable","description","iff","year","percent")])
-y <-spread(y,year,percent)
-
-yy <- reactive  ({
-          y %>% 
-          filter(
-              country==input$country,
-              Modulo %in% input$mod,
-              variable %in% input$variab,
-              period == input$period)
-      })
-
-renderFormattable ({
-    formattable(
-        yy(),
-        list(
-            area(col = `2000`:`2018`) ~ color_tile("#DeF7E9", "#71CA97")
-        )
-    )
-})
-
-#               `country` = formatter("span", style = ~ style(color = "grey",font.weight = "bold", font.size = 10)),
-#                `variable` = formatter("span", style = ~ style(color = "navy",font.style = "italic", font.size = 2)), 
- 
 ```
  
  
