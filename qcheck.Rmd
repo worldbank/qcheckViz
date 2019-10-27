@@ -23,29 +23,19 @@ runtime: shiny
 ---
 
 ```{r setup}
-# PART 0: Clear boiler plate --------------------------------------------------  
-  #rm(list=ls())
-  #memory.size()
-
-# PART 1: Select sections to run ----------------------------------------------
 
 PACKAGES             <- 0
 others               <- 0
-
-# PART 2: Load packages   -----------------------------------------------------
 
 packages  <- c("shiny","tidyverse","readxl", 
                  "plotly", "gridExtra","shinyWidgets",
                  "formattable","data.table","DT","htmlwidgets")
   
-# Install all packages
-
 if (PACKAGES) {
     install.packages(packages,
                      dependencies = TRUE)
   }
  
-# Load all packages 
 invisible(sapply(packages, library, character.only = TRUE))
 
 ```
