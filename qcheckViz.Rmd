@@ -1,0 +1,1025 @@
+---
+title: "qcheckViz"
+Author: Sandra Segovia
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    source_code: embed
+    theme: lumen
+    navbar:
+      - { title: "Created by Sandra Segovia",
+          color: "red", 
+          align: right }
+        
+      - { icon: fa-github, 
+          href: "https://github.com/ssegoviajuarez", 
+          align: right }
+          
+      - { icon: fa-linkedin, 
+          href: "https://www.linkedin.com/in/sandra-segovia/", 
+          align: right }   
+runtime: shiny
+---
+
+```{r setup}
+
+PACKAGES             <- 0
+others               <- 0
+
+packages  <- c("shiny","tidyverse","readxl", 
+                 "plotly", "gridExtra","shinyWidgets",
+                 "formattable","data.table","DT","htmlwidgets")
+  
+if (PACKAGES) {
+    install.packages(packages,
+                     dependencies = TRUE)
+  }
+ 
+invisible(sapply(packages, library, character.only = TRUE))
+
+```
+
+
+```{r global}
+
+###Loopear esta parte
+# load data in 'global' chunk so it can be shared by all users of the dashboard
+dir <- "Z:/public/Stats_Team/others/adocheck/project03"
+
+# function distinct() eliminates duplicates
+static.data <-  distinct(read_excel(file.path(dir,"excel/project03_static.xlsx")))
+basic.data <- distinct(read_excel(file.path(dir,"excel/project03_dyn_basic.xlsx")))   
+indi.data <- distinct(read_excel(file.path(dir,"excel/project03_dyn_indic.xlsx")))
+cat.data <- distinct(read_excel(file.path(dir,"excel/project03_dyn_categ.xlsx")))
+catu.data <- distinct(read_excel(file.path(dir,"excel/project03_dyn_categ_unw.xlsx"))) 
+
+#Data for help
+vars.data <- distinct(read_excel(file.path(dir,"test/qcheck_cedlas03.xlsx"), sheet = "Variables")) 
+test.data <- distinct(read_excel(file.path(dir,"test/qcheck_cedlas03.xlsx"), sheet = "Test")) 
+
+#Merging with vars.data
+static.data <-merge(static.data, vars.data, by.x="variable", by.y="raw_varname")
+basic.data <- merge(basic.data, vars.data, by.x="variable", by.y="raw_varname")
+cat.data <-merge(cat.data, vars.data, by.x="varname", by.y="raw_varname")
+catu.data <-merge(catu.data, vars.data, by.x="varname", by.y="raw_varname")
+
+#data  <- c("basic.data","static.data","indi.data", 
+#                 "cat.data", "catu.data")
+
+
+```
+
+Static 
+=======================================================================
+  
+Row {.sidebar}
+-----------------------------------------------------------------------
+
+### `Menu`
+
+```{r Menu.Static}
+### Country selection
+radioButtons(
+    inputId = 'country',
+    label = 'Select country', 
+    choices = sort(unique(static.data$country))
+)
+
+### Years Selection
+
+pickerInput(
+    inputId = 'y', 
+    label = 'Select years', 
+    choices = sort(unique(static.data$year)),
+    selected =sort(unique(static.data$year)),
+    options = list(
+        `actions-box` = TRUE, 
+        size = 10,
+        `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+### Period selection ccnditional on the country selection
+renderUI ({
+    radioButtons(
+        inputId = 'period', 
+        label = 'Select period',
+        choices = unique(static.data$period[static.data$country==input$country]))  
+})
+
+### Module selection
+renderUI ({
+    pickerInput(
+        inputId = 'mod', 
+        label = 'Select Module', 
+        choices = sort(unique(static.data$Modulo[static.data$country %in% input$country])), 
+        selected = "Employment",
+        options = list(
+            `actions-box` = TRUE, 
+            size = 10,
+            `selected-text-format` = "count > 3"
+        ), 
+        multiple = TRUE
+    )
+}) 
+
+### Variables selection conditional on module selection
+renderUI ({
+  pickerInput(
+    inputId = 'variab', 
+    label = 'Select variables', 
+    choices = sort(unique(static.data$variable[static.data$Modulo %in% input$mod])), 
+    selected = "hstrt",
+    options = list(
+      `actions-box` = TRUE, 
+      size = 10,
+      `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+  )
+})  
+```
+
+<br> 
+
+### `Description` 
+
+```{r Description.Static}
+
+renderTable({
+    w <-static.data %>% 
+            filter(
+                Modulo %in% input$mod, 
+                variable %in% input$variab, 
+                country %in% input$country,
+                year %in% input$y,
+                period == input$period
+            )  
+  w<-w[,c("variable","description")]
+  w<-distinct(w)
+  colnames(w)<- NULL
+  return(w)
+})
+```
+
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+  
+### Table
+```{r Table.Static}
+y <- mutate(static.data, percent=round(100*percentage,2))
+y <-distinct(y[,c("country","period","Modulo","variable","description","iff","year","percent")])
+y <-spread(y,year,percent)
+
+yy <- reactive  ({
+          y %>% 
+          filter(
+              country==input$country,
+              Modulo %in% input$mod,
+              variable %in% input$variab,
+              period == input$period)
+      })
+
+renderFormattable ({
+    formattable(
+        yy(),
+        list(
+            area(col = `2000`:`2018`) ~ color_tile("#DeF7E9", "#71CA97")
+        )
+    )
+})
+
+#               `country` = formatter("span", style = ~ style(color = "grey",font.weight = "bold", font.size = 10)),
+#                `variable` = formatter("span", style = ~ style(color = "navy",font.style = "italic", font.size = 2)), 
+ 
+```
+
+### Heatmap
+```{r Heatmap}
+
+static.data <- mutate(static.data, percent=100*percentage)
+#static.data$n<-as.character(static.data$n)
+#class (static.data$n)
+
+#static.data$description <- gsub(" ", "\n", static.data$description)
+
+
+ss <- reactive  ({
+  static.data %>% filter(
+              country==input$country,
+              Modulo %in% input$mod,
+              variable %in% input$variab,
+              period == input$period
+  )
+    })
+
+
+renderPlotly({  
+q<-ggplot(ss(),aes(x=year,y=description)) + 
+    geom_tile(aes(fill = percent),colour = "grey",size=1) +
+    scale_fill_gradient(low = "paleturquoise1", high = "turquoise3") +
+    labs(title ="Static Analysis (percentage in columns)", x = "Year", y = " ", fill = "%") +
+    geom_text(aes(label=paste(round(percent, 2)))) 
+ggplotly(q)
+})
+```
+ 
+ 
+### Test 
+```{r}
+
+d <- distinct(test.data[,c("variable","description","warning","temporalvars","iff","frequency")])
+
+dd <- reactive ({
+          d %>% 
+              filter(
+                  variable %in% input$variab
+              )
+      })
+
+renderDataTable({
+    datatable(
+        dd(), 
+        class = 'cell-border stripe',
+        rownames = FALSE,
+        filter = 'top'
+    )
+})
+
+```
+
+
+
+  
+```{r Heatmap.Static, eval=FALSE, include=FALSE}
+### Heatmap
+static.data <- mutate(static.data, percent=100*percentage)
+
+ss <- reactive  ({
+      static.data %>% 
+          filter(
+              Modulo %in% input$mod,
+              variable %in% input$variab,
+              country %in% input$country,
+              year %in% input$y,
+              period == input$period
+          )
+      })
+
+renderPlotly({  
+    q<-ggplot(
+          ss(),
+          aes(x=year,y=description,group=period)) + 
+          geom_tile(aes(fill = percent),colour = "grey",size=1) +
+          scale_fill_gradient(low = "paleturquoise1", high = "turquoise3") +
+          labs(title ="Static Analysis (percentage in columns)", x = "Year", y = " ", fill = "%") +
+          geom_text(aes(label=paste(round(percent, 2)))) 
+    
+    ggplotly(q)
+})
+```
+
+
+### All tests
+```{r Test.Static}
+
+renderDataTable({
+    datatable(
+      data = test.data[,c("variable","description","warning","temporalvars","iff","frequency")], 
+      class = 'cell-border stripe',
+      rownames = FALSE,
+      filter = 'top'
+  )
+})
+
+```
+
+
+Dynamic Basic (Periods oriented)
+=======================================================================
+  
+Row {.sidebar}
+-----------------------------------------------------------------------
+
+### `Menu`
+
+```{r Menu.Basic}
+
+b.data <- basic.data
+
+radioButtons(
+    inputId = 'ct', 
+    label = 'Select country', 
+    choices = sort(unique(b.data$acronym))
+)
+
+pickerInput(
+    inputId = 'yr', 
+    label = 'Select years', 
+    choices = sort(unique(b.data$year)),
+    selected = sort(unique(b.data$year)),
+    options = list(
+        `actions-box` = TRUE, 
+        size = 10,
+        `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+pickerInput(
+    inputId = 'md', 
+    label = 'Select Module', 
+    choices = sort(unique(b.data$Modulo)), 
+    selected = sort(unique(b.data$Modulo)),
+    options = list(
+        `actions-box` = TRUE, 
+        size = 10,
+        `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+renderUI({
+    selectInput(
+        inputId = 'vr',
+        label = 'Select variable', 
+        choices = sort(unique(b.data$variable[b.data$Modulo %in% input$md])),
+        selected = "hstrt"
+    )
+}) 
+```
+
+<br> <br>
+
+### `Description`
+
+```{r Description.Basic}
+renderTable ({
+    y.p <- b.data %>% 
+              filter(
+                  Modulo %in% input$md,
+                  variable == input$vr, 
+                  acronym ==input$ct
+              )  
+    
+  y.p<-y.p[,c("variable","description")]
+  y.p<-distinct(y.p)
+  colnames(y.p)<- NULL
+  return(y.p)
+})
+```
+
+
+Row
+-------------------------------------
+    
+### **Mean**
+    
+```{r}
+me.p <- reactive ({
+            basic.data %>% 
+                filter(
+                    case == "Mean", 
+                    variable == input$vr, 
+                    acronym ==input$ct,
+                    year %in% input$yr,
+                    Modulo %in% input$md
+                )
+        })
+ 
+renderPlotly({
+    
+    p<-ggplot(
+          me.p(), 
+          aes(year,value,group=period)) + 
+          geom_point(aes(colour = period), size = 1.5) + 
+          geom_line(aes(colour = period), size = 1) + 
+          theme(plot.title = element_text(hjust=0.5)) +
+          labs(
+              title=paste("<b>Mean of</b>",input$vr,"<b>for</b>", input$ct), 
+              x = "year", 
+              y = "value") 
+    
+    ggplotly(p)
+})
+```
+    
+
+### **% Missing**
+    
+```{r}
+m.p <- b.data %>% filter(case == "% Missing")
+m.p <- mutate(m.p, percent=value*100)
+
+mis.p <- reactive ({
+            m.p %>% 
+                filter(
+                    variable == input$vr, 
+                    acronym ==input$ct,
+                    year %in% input$yr,
+                    Modulo %in% input$md
+                )
+        })
+ 
+
+renderPlotly({
+    
+  p<-ggplot(
+          mis.p(), 
+          aes(year,percent,group=period)) + 
+          geom_point(aes(colour = period), size = 1.5) +
+          theme(plot.title = element_text(hjust=0.5)) +
+          geom_line(aes(colour = period), size = 1) + 
+          labs(
+              title=paste("<b>%Missings for</b>",input$vr,"<b>for</b>", input$ct),
+              x = "year", 
+              y = "percent")  
+
+    ggplotly(p) 
+})
+```
+
+
+Row
+-------------------------------------
+
+### **Standard Dev**
+
+```{r}
+sdev.p <- reactive ({
+              b.data %>% 
+                  filter(
+                      case == "SD", 
+                      variable == input$vr,
+                      acronym ==input$ct,
+                      year %in% input$yr,
+                      Modulo %in% input$md 
+                  )
+          })
+ 
+renderPlotly({
+    
+  p <-ggplot(sdev.p(),aes(year,value,group=period)) + 
+      geom_point(aes(colour = period), size = 1.5) + 
+      geom_line(aes(colour = period), size = 1) + 
+      theme(plot.title = element_text(hjust=0.5)) +
+      labs(
+          title=paste("<b>Std.Deviation of</b>",input$vr,"<b>for</b>",input$ct), 
+          x = "year",
+          y = "value") 
+      
+    
+    ggplotly(p)
+})
+```
+
+### **% Zeroes**
+
+```{r}
+z.p <- b.data %>% filter(case == "% Zero")
+z.p <- mutate(z.p, percent=value*100)
+
+zero.p <- reactive  ({
+              z.p %>% 
+                  filter(
+                      variable == input$vr, 
+                      acronym ==input$ct,
+                      year %in% input$yr,
+                      Modulo %in% input$md
+                  )
+          })
+
+renderPlotly({
+    p <- ggplot(zero.p(), aes(year,percent,group=period)) + 
+         geom_point(aes(colour = period), size = 1.5) + 
+         geom_line(aes(colour = period), size = 1) + 
+         theme(plot.title = element_text(hjust=0.5)) +
+         labs(title=paste("<b>%Zeroes for</b>",input$vr,"<b>for</b>", input$ct),
+              x = "year",
+              y = "value") 
+         
+    ggplotly(p) 
+})
+```
+
+
+Dynamic Basic (Vars oriented)
+=======================================================================
+
+Row {.sidebar}
+-----------------------------------------------------------------------
+
+### `Menu`
+
+```{r Menu}
+radioButtons(
+    inputId = 'coun', 
+    label = 'Select country', 
+    choices = sort(unique(basic.data$acronym))
+)
+
+pickerInput(
+    inputId = 'year', 
+    label = 'Select years', 
+    choices = sort(unique(basic.data$year)),
+    selected = sort(unique(basic.data$year)),
+    options = list(
+        `actions-box` = TRUE, 
+        size = 10,
+        `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+renderUI ({
+    radioButtons(
+        inputId = 'pd', 
+        label = 'Select period', 
+        choices = unique(basic.data$period[basic.data$acronym==input$coun])
+    )  
+})
+  
+pickerInput(
+    inputId = 'modu', 
+    label = 'Select Module', 
+    choices = sort(unique(basic.data$Modulo)), 
+    selected = "Employment",
+    options = list(
+        `actions-box` = TRUE, 
+        size = 10,
+        `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+renderUI ({
+    pickerInput(
+        inputId = 'vari', 
+        label = 'Select variables', 
+        choices = sort(unique(basic.data$variable[basic.data$Modulo %in% input$modu])), 
+        selected = "hstrt",
+        options = list(
+            `actions-box` = TRUE, 
+            size = 10,
+            `selected-text-format` = "count > 3"
+        ), 
+        multiple = TRUE
+    )
+}) 
+
+```
+
+<br> <br>
+
+### `Description`
+
+```{r Description}
+renderTable ({
+    y<-basic.data %>%  
+          filter(
+              Modulo %in% input$modu,
+              variable %in% input$vari, 
+              acronym ==input$coun, 
+              period==input$pd
+          )  
+    y<-y[,c("variable","description")]
+    y<-distinct(y)
+    colnames(y)<- NULL
+    return(y)
+})
+```
+
+
+Row
+-------------------------------------
+
+### **Mean**
+    
+```{r}
+me <- reactive  ({
+          basic.data %>% 
+              filter(
+                  case == "Mean", 
+                  variable %in% input$vari,
+                  Modulo %in% input$modu, 
+                  acronym ==input$coun,
+                  year %in% input$year, 
+                  period==input$pd
+              )
+      })
+
+renderPlotly ({
+    
+  p<- ggplot(me(), aes(year,value,group=variable)) + 
+        geom_point(aes(colour = variable), size = 1.5) + 
+        geom_line(aes(colour = variable), size = 1) + 
+        theme(plot.title = element_text(hjust=0.5)) +
+        labs(
+            title=paste("<b>Mean of</b>","vars","<b>for</b>", 
+                  input$coun, "<b>in period</b>",input$pd ),
+            x = "year",
+            y = "value") 
+        
+    
+    ggplotly(p)
+})
+``` 
+ 
+### **% Missing**
+    
+```{r}
+m <- basic.data %>% filter(case == "% Missing")
+m <- mutate(m, percent=value*100)
+
+mis <- reactive  ({
+    m %>% 
+        filter(
+            Modulo %in% input$modu,
+            variable %in% input$vari, 
+            acronym ==input$coun, 
+            year %in% input$year, 
+            period==input$pd
+        )
+})
+ 
+
+renderPlotly ({
+    
+  p<- ggplot(mis(), aes(year,percent,group=variable)) + 
+        geom_point(aes(colour = variable), size = 1.5) + 
+        geom_line(aes(colour = variable), size = 1) + 
+        theme(plot.title = element_text(hjust=0.5)) +
+        labs(
+            title=paste("<b>%Missings for</b>","vars","<b>for</b>",
+                         input$coun, "<b>in period</b>",input$pd ), 
+            x = "year", 
+            y = "percent") 
+    
+    ggplotly(p) 
+})
+```
+
+   
+Row
+-------------------------------------
+    
+### **Standard Dev**
+
+```{r}
+sdev <- reactive  ({
+            basic.data %>% 
+                filter(
+                    case == "SD", 
+                    Modulo %in% input$modu, 
+                    variable %in% input$vari, 
+                    acronym ==input$coun,
+                    year %in% input$year, period==input$pd
+                )
+        })
+ 
+renderPlotly ({
+    p<- ggplot(sdev(), aes(year,value,group=variable)) +
+        geom_point(aes(colour = variable), size = 1.5) + 
+        geom_line(aes(colour = variable), size = 1) + 
+        theme(plot.title = element_text(hjust=0.5)) +
+        labs(
+          title=paste("<b>Std.Deviation of</b>","vars","<b>for</b>", 
+                input$coun, "<b>in period</b>",input$pd),
+          x = "year", 
+          y = "value") 
+
+    ggplotly(p)
+})
+```
+
+### **% Zeroes**
+
+```{r}
+z <- basic.data %>% filter(case == "% Zero")
+z <- mutate(z, percent=value*100)
+
+zero <- reactive  ({
+            z %>% 
+                filter(
+                    variable %in% input$vari, 
+                    Modulo %in% input$modu, 
+                    acronym ==input$coun, 
+                    year %in% input$year, period==input$pd
+                )
+        })
+
+renderPlotly ({
+   
+   p<- ggplot(zero(), aes(year,percent,group=variable)) + 
+        geom_point(aes(colour = variable), size = 1.5) + 
+        geom_line(aes(colour = variable), size = 1) + 
+        theme(plot.title = element_text(hjust=0.5)) +
+        labs(
+            title=paste("<b>%Zeroes for</b>","vars","<b>for</b>",
+                        input$coun, "<b>in period</b>",input$pd ), 
+            x = "year", 
+            y = "percent") 
+    ggplotly(p) 
+
+})
+```
+
+
+Dynamic Indicators
+=======================================================================
+  
+Row {.sidebar}
+-----------------------------------------------------------------------
+
+### `Menu`
+
+```{r Menu.Indi}
+
+radioButtons(
+    inputId = 'countr',
+    label = 'Select country', 
+    choices = sort(unique(indi.data$acronym))
+)
+
+pickerInput(
+    inputId = 'ye', 
+    label = 'Select years', 
+    choices = sort(unique(indi.data$year)),
+    selected = sort(unique(indi.data$year)),
+    options = list(
+        `actions-box` = TRUE, 
+        size = 10,
+        `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+pickerInput(
+    inputId = 'indi', 
+    label = 'Select indicators', 
+    choices = unique(indi.data$case),
+    selected = unique(indi.data$case),
+    options = list(
+        `actions-box` = TRUE, 
+        size = 10,
+       `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+```
+
+<br> <br>
+
+### `Notes`
+
+<style>
+div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
+</style>
+<div class = "blue">
+
+The variable used to calculate this indicators is *ipcf* (ingreso per capita familiar). $$ipcf = \frac{itf}{miembros}$$ , where *itf* is ingreso total familiar and *miembros* is numero de miembros del hogar principal.
+
+</div>
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Inequality
+```{r Inequality}
+
+ineq <- reactive ({
+            indi.data %>% 
+                filter(
+                    analysis =="Inequality",
+                    case %in% input$indi,
+                    acronym ==input$countr, 
+                    year %in% input$ye
+                )
+        })
+
+renderPlotly ({
+    p <- ggplot(
+         ineq(), 
+         aes(year,value,group=period)) + 
+         geom_point(aes(colour = period), size = 1.5) + 
+         geom_line(aes(colour = period), size = 1) + facet_grid(case~.) +
+         theme(plot.title = element_text(hjust=0.5)) +
+         labs(
+            title =paste("<b>Inequality Indicators for</b>",input$countr), 
+            x = "year", 
+            y = "index")
+  
+    ggplotly(p)  
+})
+
+```
+
+
+### Poverty  
+```{r Poverty}
+
+pov <-  reactive ({
+            indi.data %>% 
+                filter(
+                    analysis =="Poverty",
+                    case %in% input$indi, 
+                    acronym ==input$countr, 
+                    year %in% input$ye
+                )
+        })
+
+renderPlotly ({
+    
+    p<-ggplot(
+          pov(), 
+          aes(year,value,group=period)) + 
+          geom_point(aes(colour = period), size = 1.5) + 
+          geom_line(aes(colour = period), size = 1) + facet_grid(case~.) + 
+          theme(plot.title = element_text(hjust=0.5)) +
+          labs(
+              title =paste("<b>Poverty Rates for</b>",input$countr), 
+              x = "year",
+              y = "%")  
+    
+    ggplotly(p)  
+})
+
+```
+
+
+
+Dynamic Categorical
+=======================================================================
+  
+Row {.sidebar}
+-----------------------------------------------------------------------
+
+### `Menu`
+
+```{r Menu.Cat}
+radioButtons(
+    inputId = 'count', 
+    label = 'Select country', 
+    choices = unique(cat.data$countrycode)
+)
+
+pickerInput(
+    inputId = 'yea', 
+    label = 'Select years',
+    choices = sort(unique(cat.data$year)),
+    selected = sort(unique(cat.data$year)),
+    options = list(
+        `actions-box` = TRUE, 
+        size = 10,
+        `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+renderUI ({
+    radioButtons(
+        inputId = 'peri', 
+        label = 'Select period', 
+        choices = unique(cat.data$period[cat.data$countrycode==input$count]))  
+})
+  
+pickerInput(
+    inputId = 'module', 
+    label = 'Select Module', 
+    choices = sort(unique(cat.data$Modulo)), 
+    selected = "Employment",
+    options = list(
+          `actions-box` = TRUE, 
+          size = 10,
+          `selected-text-format` = "count > 3"
+    ), 
+    multiple = TRUE
+)
+
+renderUI ({
+    selectInput(
+        inputId = 'varia', 
+        label = 'Select variable',
+        choices= unique(cat.data$varname[cat.data$Modulo %in% input$module]),
+        selected = "hstrt"
+    )
+})
+
+
+```
+
+### `Description`
+
+```{r Description.Cat}
+### Variable Description
+renderTable ({
+  
+    y<-cat.data %>%  
+        filter(
+            varname == input$varia
+        )
+    
+    y<-y[,c("varname","label")]
+    y<-distinct(y)
+    colnames(y)<- NULL
+    return(y)
+
+})
+```
+
+
+Row
+-------------------------------------
+```{r Weighted}
+### Weighted
+w <- reactive ({
+        cat.data %>% 
+            filter(
+                weight != 1,
+                Modulo %in% input$module, 
+                varname == input$varia, 
+                countrycode ==input$count,
+                period == input$peri,
+                year %in% input$yea
+            )
+    })
+
+renderPlotly ({
+    p<-ggplot(
+          w(), 
+          aes(year,freq,fill=valuelab)) +
+          geom_bar(stat = "identity") + 
+          theme(plot.title = element_text(hjust = 0.5)) +
+          labs(title=paste("<b>(Weighted) Participation Analysis of</b>",
+                           input$varia,"<b>for</b>", input$count, 
+                           "<b>in period</b>",input$peri ), 
+               x = "year", 
+               y = "%", 
+               fill = "Categories") 
+          
+    ggplotly(p)
+})
+
+```
+
+Row
+-------------------------------------
+```{r Unweighted}
+### Unweighted
+  
+unw <- reactive ({
+          catu.data %>%
+              filter(
+                  weight == 1,
+                  Modulo %in% input$module,
+                  varname == input$varia,
+                  countrycode ==input$count,
+                  period == input$peri,
+                  year %in% input$yea
+              )
+      })
+
+renderPlotly ({
+    p<-ggplot(
+          unw(), 
+          aes(year,freq,fill=valuelab)) + 
+          geom_bar(stat = "identity",na.rm=FALSE) + 
+          theme(plot.title = element_text(hjust = 0.5)) +
+          labs(
+              title=paste("<b>(Unweighted) Participation Analysis of</b>",
+                          input$varia,"<b>for</b>", 
+                          input$count, "<b>in period</b>",input$peri), 
+              x = "year", 
+              y = "%", 
+              fill = "Categories") 
+          
+    ggplotly(p)
+})
+```
+
+
+```{r,include=FALSE}
+sessionInfo()
+```
+
+Variables description
+=======================================================================
+
+Row
+-------------------------------------
+```{r Variables}
+renderDataTable ({
+    datatable(
+        data= vars.data[2:12], 
+        class = 'cell-border stripe',
+        rownames = FALSE,
+        filter = 'top'
+    )
+})
+```
+
+
