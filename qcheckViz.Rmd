@@ -812,8 +812,7 @@ renderPlotly ({
             title =paste("<b>Inequality Indicators for</b>",input$countr), 
             x = "year", 
             y = "index")
-  
-    ggplotly(p)  
+
 })
 
 ```
