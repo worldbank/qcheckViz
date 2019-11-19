@@ -6,4 +6,5 @@
 To access to the qcheckViz dashboard (without opening the file and running it by yourself, run the following 2 lines in Rstudio console window. 
 
 install.packages(c("rmarkdown","flexdashboard","shiny"))
+
 rmarkdown::run("LOCATION OF YOUR FILE/qcheckViz.Rmd")
