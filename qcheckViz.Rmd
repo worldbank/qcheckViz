@@ -45,7 +45,7 @@ invisible(sapply(packages, library, character.only = TRUE))
 
 ###Loopear esta parte
 # load data in 'global' chunk so it can be shared by all users of the dashboard
-dir <- "Z:/public/Stats_Team/others/adocheck/project03"
+dir <- "..."
 
 # function distinct() eliminates duplicates
 static.data <-  distinct(read_excel(file.path(dir,"excel/project03_static.xlsx")))
