@@ -10,3 +10,5 @@ REMEMBER that you need the output created from Qcheck as inputs for this program
 install.packages(c("rmarkdown","flexdashboard","shiny"))
 
 rmarkdown::run("LOCATION OF YOUR FILE/qcheckViz.Rmd")
+
+### Created by Sandra Segovia https://github.com/ssegoviajuarez/
